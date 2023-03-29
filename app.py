@@ -5,24 +5,40 @@
 
 
 #imports
-import firebase_admin
-from firebase_admin import credentials
-from firebase_admin import auth
-import pyrebase
+
+#---firebase modules------
+# import firebase_admin
+# from firebase_admin import credentials
+# from firebase_admin import auth
+# import pyrebase
+#-----------------
+
+#----database modules-------
+#import mysql
+#---------
+
 from flask import Flask,jsonify,request
 import json
-import pandas as pd # dataframe
-import numpy as np # mathematical calculations
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.preprocessing import LabelEncoder
-from sklearn.ensemble import RandomForestRegressor #Random Forest Regression
-from sklearn.model_selection import train_test_split
+import pandas as pd
+import numpy as np
+import re
+import emoji
+import seaborn as sns
+import matplotlib.pyplot as plt
+from matplotlib import style
+style.use('ggplot')
+import nltk
+nltk.download('stopwords')
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
+from nltk.corpus import stopwords
+from wordcloud import WordCloud
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, ConfusionMatrixDisplay, roc_curve, auc
+import joblib
 from warnings import simplefilter #Filtering warnings
-import seaborn as sns #visualization
-import matplotlib.pyplot as plt #visualization
-from matplotlib import rcParams
-import smtplib
-from email.message import EmailMessage
+
 
 
 app = Flask(__name__) #intance of our flask application 
@@ -41,46 +57,7 @@ def detect():
         grade=request_data['grade']
         fuelType=request_data['fuel type']
         transType=request_data['transmission type']
-
-        simplefilter(action='ignore', category=FutureWarning) 
-
-        # importing the dataset
-        df1 = pd.read_csv('toyota_cars.csv')
-        df1.rename(columns = {'price (Rs.)' : 'price'}, inplace = True)
-
-        df2 = df1.drop('price', axis = 'columns')
-        df3 = df1.drop(['make', 'model', 'model_year', 'gear', 'fuel_type', 'engine_cc','mileage_km'], axis = 'columns')
-
-        make_l = LabelEncoder()
-        model_l = LabelEncoder()
-        gear_l = LabelEncoder()
-        fuel_type_l = LabelEncoder()
-
-        df2['make_n'] = make_l.fit_transform(df2['make'])
-        df2['model_n'] = model_l.fit_transform(df2['model'])
-        df2['transmission_n'] = gear_l.fit_transform(df2['gear'])
-        df2['fuel_type_n'] = fuel_type_l.fit_transform(df2['fuel_type'])
-
-        modelNum=findMatchNum(model,"model","model_n",df2)
-        transNum=findMatchNum(transType,"gear","transmission_n",df2)
-        fuelNum=findMatchNum(fuelType,"fuel_type","fuel_type_n",df2)
-
-        # input data 
-        x = df2.drop(['make', 'model', 'gear', 'fuel_type'], axis = 'columns')
-
-        # output data
-        y = df3
-
-        x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=10)
-        model = RandomForestRegressor()
-        model.fit(x_train,y_train)
-        model.fit(x,y)
-
-        prediction = model.predict([[int(year),int(engineCapacity),int(mileage), 0, int(modelNum), int(transNum), int(fuelNum)]]).astype(float)
-        price = "Rs. {:,.2f}".format(prediction[0])
-
-
-
+        
         return jsonify({'response':price})
     else:
         return jsonify({'response':response})
