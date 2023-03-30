@@ -1,9 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[ ]:
-
-
 #imports
 
 #---firebase modules------
@@ -14,9 +8,10 @@
 #-----------------
 
 #----database modules-------
-#import mysql
+import psycopg2
 #---------
 
+#------ML & other modules--------
 from flask import Flask,jsonify,request
 import json
 import pandas as pd
@@ -36,7 +31,7 @@ import joblib
 from warnings import simplefilter #Filtering warnings
 
 
-
+#function to perform pre-processing
 def preprocess_text(final_stop_words, text):
     
     # removal of capitalization
@@ -67,6 +62,7 @@ def preprocess_text(final_stop_words, text):
     
     return preprocessed_text
 
+#function to extract feature from pre-processed text
 def extract_features(vectorizer, preprocessed_text):
     vectorized_text = vectorizer.transform([preprocessed_text])
     return vectorized_text
@@ -88,6 +84,8 @@ def classify_text(classifier_model, vectorizer, final_stop_words, text):
     
     return pred_value[0], percentage[0]
 
+
+#--------Main Application-------------
 app = Flask(__name__) #intance of our flask application 
 
 @app.route('/detect', methods = ['GET'])
@@ -112,6 +110,36 @@ def detect():
         prediction, percentage = classify_text(loaded_clf, loaded_vectorizer, final_stop_words, text)
         
         return jsonify({'prediction': int(prediction), 'percentage': float(percentage)})
+    
+    
+@app.route('/save-results', methods = ['POST'])
+def save():
+    if(request.method=='POST'):
+        
+        request_data=request.data
+        request_data=json.loads(request_data.decode('utf-8'))
+        text=request_data['text']
+        label=request_data['label']
+        
+        #database connection
+        conn = psycopg2.connect(database="dep_detector", 
+                                user="fahd",
+                                password="fahd123", 
+                                host="35.232.162.193", port="5432")
+        
+        cur = conn.cursor()
+
+        cur.execute(
+            '''INSERT INTO detection_results \
+            (text, text_Label) VALUES (%s, %s)''', (str(text), int(label))
+        )
+        
+        conn.commit()
+        
+        cur.close()
+        conn.close()
+        
+        return jsonify({'status': 'success', 'msg': 'successfully added to the db'})
     
 
 if __name__ == "__main__":
