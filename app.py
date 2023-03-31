@@ -29,7 +29,7 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, ConfusionMatrixDisplay, roc_curve, auc
 import joblib
 from warnings import simplefilter #Filtering warnings
-
+from flask_cors import CORS, cross_origin
 
 #function to perform pre-processing
 def preprocess_text(final_stop_words, text):
@@ -87,14 +87,18 @@ def classify_text(classifier_model, vectorizer, final_stop_words, text):
 
 #--------Main Application-------------
 app = Flask(__name__) #intance of our flask application 
+CORS(app)
 
 @app.route('/detect', methods = ['GET'])
+@cross_origin()
 def detect():
     if(request.method=='GET'):
         
-        request_data=request.data
-        request_data=json.loads(request_data.decode('utf-8'))
-        text=request_data['text']
+        # request_data=request.data
+        # request_data=json.loads(request_data.decode('utf-8'))
+        # text=request_data['text']
+        
+        text=request.args['text']
         
         # loading the classifier and the vectorizer
         loaded_clf = joblib.load('depression_classifier.joblib')
