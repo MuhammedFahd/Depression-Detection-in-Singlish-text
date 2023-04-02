@@ -30,6 +30,8 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 import joblib
 from warnings import simplefilter #Filtering warnings
 from flask_cors import CORS, cross_origin
+import smtplib
+from email.message import EmailMessage
 
 #function to perform pre-processing
 def preprocess_text(final_stop_words, text):
@@ -84,21 +86,41 @@ def classify_text(classifier_model, vectorizer, final_stop_words, text):
     
     return pred_value[0], percentage[0]
 
+#function to save detected results into the database
+def save_results(text, label):
+    #database connection
+    conn = psycopg2.connect(database="dep_detector", 
+                            user="fahd",
+                            password="fahd123", 
+                            host="35.232.162.193", port="5432")
+    
+    cur = conn.cursor()
+
+    cur.execute(
+        '''INSERT INTO detection_results \
+        (text, text_Label) VALUES (%s, %s)''', (str(text), int(label))
+    )
+    
+    conn.commit()
+    
+    cur.close()
+    conn.close()
+    
 
 #--------Main Application-------------
 app = Flask(__name__) #intance of our flask application 
 CORS(app)
 
-@app.route('/detect', methods = ['GET'])
+@app.route('/detect', methods = ['POST'])
 @cross_origin()
 def detect():
-    if(request.method=='GET'):
+    if(request.method == 'POST'):
         
-        # request_data=request.data
-        # request_data=json.loads(request_data.decode('utf-8'))
-        # text=request_data['text']
+        #fetching request data
+        request_data = request.get_json()
+        text = request_data['text']
         
-        text=request.args['text']
+        # text=request.args['text']
         
         # loading the classifier and the vectorizer
         loaded_clf = joblib.load('depression_classifier.joblib')
@@ -110,41 +132,44 @@ def detect():
             for line in f:
                 final_stop_words.append(line.strip())
                         
-        # classifying the text and displaying the results
+        # classifying the text and saving the results in the database
         prediction, percentage = classify_text(loaded_clf, loaded_vectorizer, final_stop_words, text)
+        save_results(text, prediction)
         
         return jsonify({'prediction': int(prediction), 'percentage': float(percentage)})
     
-    
-@app.route('/save-results', methods = ['POST'])
-def save():
-    if(request.method=='POST'):
-        
-        request_data=request.data
-        request_data=json.loads(request_data.decode('utf-8'))
-        text=request_data['text']
-        label=request_data['label']
-        
-        #database connection
-        conn = psycopg2.connect(database="dep_detector", 
-                                user="fahd",
-                                password="fahd123", 
-                                host="35.232.162.193", port="5432")
-        
-        cur = conn.cursor()
 
-        cur.execute(
-            '''INSERT INTO detection_results \
-            (text, text_Label) VALUES (%s, %s)''', (str(text), int(label))
-        )
-        
-        conn.commit()
-        
-        cur.close()
-        conn.close()
-        
-        return jsonify({'status': 'success', 'msg': 'successfully added to the db'})
-    
+@app.route('/contact', methods=['POST'])
+@cross_origin()
+def contact():
+    if(request.method == 'POST'):
+        request_data = request.get_json()
+        username = request_data['username']
+        email = request_data['email']
+        userMessage = request_data['message']
+
+        msg = EmailMessage();
+        msg['Subject']="message from depression detection system, " + str(email)
+        msg['From']="user"
+        msg['To']="rockfahd.fazal@gmail.com"
+
+        body = str(userMessage)
+        message = f"""Hello Fahd,
+
+        {body}
+
+        Thank You,
+        {username}"""
+
+        msg.set_content(message)
+
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        server.login("fahad.2019656@iit.ac.lk","brothereye")
+        server.send_message(msg)
+        server.quit()
+
+        return jsonify({'response':'message sent successfully'})
+
 
 if __name__ == "__main__":
     app.run(debug = True) #debug will allow changes without shutting down the server 
