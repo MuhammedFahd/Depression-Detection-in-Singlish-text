@@ -1,15 +1,6 @@
 #imports
-
-#---firebase modules------
-# import firebase_admin
-# from firebase_admin import credentials
-# from firebase_admin import auth
-# import pyrebase
-#-----------------
-
 #----database modules-------
 import psycopg2
-#---------
 
 #------ML & other modules--------
 from flask import Flask,jsonify,request
@@ -24,15 +15,15 @@ from matplotlib import style
 style.use('ggplot')
 import nltk
 from nltk.tokenize import word_tokenize
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, ConfusionMatrixDisplay, roc_curve, auc
 import joblib
 from warnings import simplefilter #Filtering warnings
 from flask_cors import CORS, cross_origin
 import smtplib
 from email.message import EmailMessage
+import base64
 
+
+#----------User-defined functions----------------
 #function to perform pre-processing
 def preprocess_text(final_stop_words, text):
     
@@ -105,7 +96,6 @@ def save_results(text, label):
     
     cur.close()
     conn.close()
-    
 
 #--------Main Application-------------
 app = Flask(__name__) #intance of our flask application 
@@ -116,11 +106,9 @@ CORS(app)
 def detect():
     if(request.method == 'POST'):
         
-        #fetching request data
+        # fetching request data
         request_data = request.get_json()
         text = request_data['text']
-        
-        # text=request.args['text']
         
         # loading the classifier and the vectorizer
         loaded_clf = joblib.load('depression_classifier.joblib')
@@ -143,16 +131,20 @@ def detect():
 @cross_origin()
 def contact():
     if(request.method == 'POST'):
+        
+        # Fetching request data
         request_data = request.get_json()
         username = request_data['username']
         email = request_data['email']
         userMessage = request_data['message']
 
+        # Creating the email message
         msg = EmailMessage();
         msg['Subject']="message from depression detection system, " + str(email)
         msg['From']="user"
         msg['To']="rockfahd.fazal@gmail.com"
 
+        # Body of the email message
         body = str(userMessage)
         message = f"""Hello Fahd,
 
@@ -162,9 +154,16 @@ def contact():
         {username}"""
 
         msg.set_content(message)
-
+        
+        # Decoding the encoded password of the email account
+        base64_pass = 'YnJvdGhlcmV5ZQ=='
+        base64_bytes = base64_pass.encode('ascii')
+        pass_bytes = base64.b64decode(base64_bytes)
+        password = pass_bytes.decode('ascii')
+        
+        # Sending the created email message
         server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-        server.login("fahad.2019656@iit.ac.lk","brothereye")
+        server.login("fahad.2019656@iit.ac.lk", password)
         server.send_message(msg)
         server.quit()
 
