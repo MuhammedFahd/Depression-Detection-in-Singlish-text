@@ -101,6 +101,14 @@ def save_results(text, label):
 app = Flask(__name__) #intance of our flask application 
 CORS(app)
 
+# Connection check API
+@app.route('/index', methods = ['GET'])
+@cross_origin()
+def index():
+    return jsonify({'message': 'connection established'})
+
+
+# depression detection API
 @app.route('/detect', methods = ['POST'])
 @cross_origin()
 def detect():
@@ -125,8 +133,9 @@ def detect():
         save_results(text, prediction)
         
         return jsonify({'prediction': int(prediction), 'percentage': float(percentage)})
-    
 
+    
+# User contact API
 @app.route('/contact', methods=['POST'])
 @cross_origin()
 def contact():
