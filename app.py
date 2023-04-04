@@ -78,19 +78,23 @@ def classify_text(classifier_model, vectorizer, final_stop_words, text):
 
 #function to save detected results
 def save_results(text, label):
-    filename = 'detected_results.csv'
+    #database connection
+    conn = psycopg2.connect(database="dep_detector", 
+                            user="fahd",
+                            password="fahd123", 
+                            host="35.232.162.193", port="5432")
+    
+    cur = conn.cursor()
 
-    # Check if file exists, create it if it doesn't
-    if not os.path.isfile(filename):
-        with open(filename, mode='w', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(['Raw Text', 'Label'])
-
-
-    # Open the file in append mode and write the data to it
-    with open(filename, mode='a', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow([text, label])
+    cur.execute(
+        '''INSERT INTO detection_results \
+        (text, text_Label) VALUES (%s, %s)''', (str(text), int(label))
+    )
+    
+    conn.commit()
+    
+    cur.close()
+    conn.close()
 
 
 #--------Main Application-------------
