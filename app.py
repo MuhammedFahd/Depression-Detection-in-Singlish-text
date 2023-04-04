@@ -9,11 +9,8 @@ import pandas as pd
 import numpy as np
 import re
 import emoji
-import seaborn as sns
-import matplotlib.pyplot as plt
-from matplotlib import style
-style.use('ggplot')
 import nltk
+nltk.download('punkt')
 from nltk.tokenize import word_tokenize
 import joblib
 from warnings import simplefilter #Filtering warnings
