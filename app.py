@@ -18,6 +18,8 @@ from flask_cors import CORS, cross_origin
 import smtplib
 from email.message import EmailMessage
 import base64
+import csv
+import os
 
 
 #----------User-defined functions----------------
@@ -74,25 +76,22 @@ def classify_text(classifier_model, vectorizer, final_stop_words, text):
     
     return pred_value[0], percentage[0]
 
-#function to save detected results into the database
+#function to save detected results
 def save_results(text, label):
-    #database connection
-    conn = psycopg2.connect(database="dep_detector", 
-                            user="fahd",
-                            password="fahd123", 
-                            host="35.232.162.193", port="5432")
-    
-    cur = conn.cursor()
+    filename = 'detected_results.csv'
 
-    cur.execute(
-        '''INSERT INTO detection_results \
-        (text, text_Label) VALUES (%s, %s)''', (str(text), int(label))
-    )
-    
-    conn.commit()
-    
-    cur.close()
-    conn.close()
+    # Check if file exists, create it if it doesn't
+    if not os.path.isfile(filename):
+        with open(filename, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(['Raw Text', 'Label'])
+
+
+    # Open the file in append mode and write the data to it
+    with open(filename, mode='a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow([text, label])
+
 
 #--------Main Application-------------
 app = Flask(__name__) #intance of our flask application 
