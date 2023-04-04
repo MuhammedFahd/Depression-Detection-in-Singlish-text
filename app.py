@@ -3,7 +3,7 @@
 import psycopg2
 
 #------ML & other modules--------
-from flask import Flask,jsonify,request
+from flask import Flask,jsonify,request, send_file
 import json
 import pandas as pd
 import numpy as np
@@ -173,6 +173,13 @@ def contact():
         server.quit()
 
         return jsonify({'response':'message sent successfully'})
+    
+# Saved results CSV file download API
+@app.route('/download')
+@cross_origin()
+def downloadFile ():
+    path = "detected_results.csv"
+    return send_file(path, as_attachment=True)
 
 
 if __name__ == "__main__":
