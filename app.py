@@ -23,7 +23,7 @@ import os
 
 
 #----------User-defined functions----------------
-#function to perform pre-processing
+#function to perform data pre-processing
 def preprocess_text(final_stop_words, text):
     
     # removal of capitalization
